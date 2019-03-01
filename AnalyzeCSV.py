@@ -141,8 +141,7 @@ class Analyzer:
                 writer.writerow(row)
 
 if __name__ == '__main__':
-    conditions = {'action_type': 'cActionItemScriptExecuteProject'}
-    analyzer = Analyzer(where_field_value=conditions)
+    analyzer = Analyzer()
     analyzer.get_empty_columns()
     analyzer.print_csv_stats()
     analyzer.export_csv(export_path='output.csv', headers='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
