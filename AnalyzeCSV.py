@@ -10,44 +10,139 @@ TODO:
 
 """
 
-headers = dict()
+class Analyzer:
+    """
+    Parameters:
+        (dict) where_field_value: If set, the csv_contents will skip any rows where key does not equal value
+    """
 
-csv_contents = []
+    # CSV Headers
+    headers = None
 
-with open('sorted.csv', newline='') as csvfile:
-    reader = csv.DictReader(csvfile)
-    for row in reader:
-        csv_contents.append(row)
-        for k, v in row.items():
-            if k not in headers.keys():
-                headers[k] = 'BLANK COLUMN FOUND'
-            if headers[k] == 'BLANK COLUMN FOUND':
-                if v:
-                    headers[k] = v
+    # CSV Input File Path
+    input_path = None
 
-total_headers = []
-blank_headers = []
-used_headers = []
+    # List of CSV Rows (Rows are OrderedDict objects returned by csv.DictReader)
+    csv_contents = None
+    
+    # Lists
+    used_headers = None
+    blank_headers = None
 
-for k, v in headers.items():
-    print('{}: {}'.format(k, v))
-    total_headers.append(k)
-    if v == 'BLANK COLUMN FOUND':
-        blank_headers.append(k)
-    else:
-        used_headers.append(k)
+    def __init__(self, input_path='input.csv', where_field_value=None):
+        # Values passed by args
+        self.input_path = input_path
+        self.where_field_value = where_field_value
 
-print('-'*120)
+        # Initialize attributes
+        self.headers = []
+        self.csv_contents = []
+        self.unique_rows = []
+        self.used_headers = []
+        self.blank_headers = []
 
-print('Number of Total Headers: {}'.format(len(total_headers)))
-print('Number of Used Headers: {}'.format(len(used_headers)))
-print('Number of Blank Headers: {}'.format(len(blank_headers)))
+        # Method calls
+        self.read_csv()
 
-print('-'*120)
 
-with open('modified_output.csv', 'w',  newline='') as outfile:
-    # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
-    writer = csv.DictWriter(outfile, used_headers, extrasaction='ignore', quoting=csv.QUOTE_ALL)
-    writer.writeheader()
-    for row in csv_contents:
-        writer.writerow(row)
+    def read_csv(self):
+        # Get CSV Contents
+        i = 0
+        with open(self.input_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                i = i+1
+                if isinstance(self.where_field_value, dict):
+                    print('Using WHERE conditions: {}'.format(self.where_field_value))
+                    for key, value in self.where_field_value.items():
+                        print('Checking: ({} == {})'.format(row[key], value))
+                        if row[key] != value:
+                            print('Continuing: ({} != {})'.format(row[key], value))
+                            continue
+                        else:
+                            self.csv_contents.append(dict(row))
+                else:
+                    print('No conditions indicated. Returning all rows.')
+                    self.csv_contents.append(dict(row))
+        print(i)
+        # Get Headers
+        for k in self.csv_contents[0].keys():
+            self.headers.append(k)
+
+
+    def get_empty_columns(self):
+        # TODO: Improve that ugly "BLANK COLUMN FOUND" bit
+        tmp_headers = dict()
+        for row in self.csv_contents:
+            for k, v in row.items():
+                if k not in tmp_headers.keys():
+                    tmp_headers[k] = 'BLANK COLUMN FOUND'
+                if tmp_headers[k] == 'BLANK COLUMN FOUND':
+                    if v:
+                        tmp_headers[k] = v
+
+        for k, v in tmp_headers.items():
+            if v == 'BLANK COLUMN FOUND':
+                self.blank_headers.append(k)
+            else:
+                self.used_headers.append(k)
+
+    def get_unique_rows(self):
+        if not self.unique_rows:
+            for row in self.csv_contents:
+                if row not in self.unique_rows:
+                    self.unique_rows.append(row)
+        return self.unique_rows
+
+    def print_csv_stats(self):
+        # Format the output strings
+        stats_preface_string = "Stats for '{}':".format(self.input_path)
+        csv_row_count_string = "Number of Rows in '{}': {}".format(self.input_path, len(self.csv_contents))
+        csv_unique_row_count_string = "Number of Unique Rows in '{}': {}".format(self.input_path,
+                                                                                 len(self.get_unique_rows()))
+        total_header_string = 'Number of Total Headers: {}'.format(len(self.headers))
+        used_header_string = 'Number of Used Headers: {}'.format(len(self.used_headers))
+        blank_header_string = 'Number of Blank Headers: {}'.format(len(self.blank_headers))
+
+        # Get the length for the separator line
+        lengths = [len(stats_preface_string), len(csv_row_count_string), len(csv_unique_row_count_string),
+                   len(total_header_string), len(used_header_string), len(blank_header_string)]
+        lengths.sort()
+        separator_length = lengths[0] * 3
+
+        # Print the stats
+        print('-' * separator_length)
+        print(stats_preface_string)
+        print(csv_row_count_string)
+        print(csv_unique_row_count_string)
+        print(total_header_string)
+        print(used_header_string)
+        print(blank_header_string)
+        print('-' * separator_length)
+
+    def export_csv(self, headers='DEFAULT', export_path='output.csv', **kwargs):
+        if headers == 'EXCLUDE_BLANK':
+            headers = self.used_headers
+        elif headers == 'BLANK':
+            headers = self.blank_headers
+        else:
+            headers = self.headers
+
+        # Additional keyword arguments are passed to the csv.DictWriter constructor.
+        if not headers:
+            headers = self.headers
+
+        with open(export_path, 'w', newline='') as outfile:
+            # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
+            # quoting=csv.QUOTE_ALL
+            writer = csv.DictWriter(outfile, headers, extrasaction='ignore', **kwargs)
+            writer.writeheader()
+            for row in self.csv_contents:
+                writer.writerow(row)
+
+if __name__ == '__main__':
+    conditions = {'action_type': 'cActionItemScriptExecuteProject'}
+    analyzer = Analyzer(where_field_value=conditions)
+    analyzer.get_empty_columns()
+    analyzer.print_csv_stats()
+    analyzer.export_csv(export_path='output.csv', headers='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
