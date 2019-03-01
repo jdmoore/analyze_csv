@@ -1,6 +1,10 @@
 # Pycharm Folder
 .idea/**
 
+# Cache
+__pycache__/**
+
 # Test Input/Output
 scratch.py
 *.csv
+*.txt

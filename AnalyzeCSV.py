@@ -42,13 +42,13 @@ class Analyzer:
 
     def read_csv(self):
         # Get CSV Contents
-        i = 0
+        # i = 0
         with open(self.input_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
-                i = i+1
+                # i = i+1
                 self.csv_contents.append(dict(row))
-        print(i)
+        # print(i)
         # Get Headers
         for k in self.csv_contents[0].keys():
             self.headers.append(k)
@@ -89,10 +89,11 @@ class Analyzer:
         blank_header_string = 'Number of Blank Headers: {}'.format(len(self.blank_headers))
 
         # Get the length for the separator line
-        lengths = [len(stats_preface_string), len(csv_row_count_string), len(csv_unique_row_count_string),
-                   len(total_header_string), len(used_header_string), len(blank_header_string)]
-        lengths.sort()
-        separator_length = lengths[0] * 3
+        # lengths = [len(stats_preface_string), len(csv_row_count_string), len(csv_unique_row_count_string),
+        #            len(total_header_string), len(used_header_string), len(blank_header_string)]
+        # lengths.sort()
+        # separator_length = lengths[0] * 3
+        separator_length = 120
 
         # Print the stats
         print('-' * separator_length)
@@ -118,10 +119,10 @@ class Analyzer:
         if not headers:
             headers = self.headers
 
-        if isinstance(where_condition, dict):
-            print('Using WHERE conditions: {}'.format(where_condition))
-        else:
-            print('No WHERE conditions given. Writing all rows.')
+        # if isinstance(where_condition, dict):
+        #     print('Using WHERE conditions: {}'.format(where_condition))
+        # else:
+        #     print('No WHERE conditions given. Writing all rows.')
 
         with open(export_path, 'w', newline='') as outfile:
             # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
@@ -135,13 +136,13 @@ class Analyzer:
                     for key, value in where_condition.items():
                         # print('Checking: ({} == {})'.format(row[key], value))
                         if row[key] != value:
-                            print('Continuing: ({} != {})'.format(row[key], value))
+                            # print('Continuing: ({} != {})'.format(row[key], value))
                             is_match = False
                             break
                     if is_match:
                         writer.writerow(row)
                 else:
-                    print('Writing:\n{}'.format(row))
+                    # print('Writing:\n{}'.format(row))
                     writer.writerow(row)
 
 if __name__ == '__main__':
