@@ -11,10 +11,6 @@ TODO:
 """
 
 class Analyzer:
-    """
-    Parameters:
-        (dict) where_field_value: If set, the csv_contents will skip any rows where key does not equal value
-    """
 
     # CSV Headers
     headers = None
@@ -29,10 +25,9 @@ class Analyzer:
     used_headers = None
     blank_headers = None
 
-    def __init__(self, input_path='input.csv', where_field_value=None):
+    def __init__(self, input_path='input.csv'):
         # Values passed by args
         self.input_path = input_path
-        self.where_field_value = where_field_value
 
         # Initialize attributes
         self.headers = []
@@ -52,18 +47,7 @@ class Analyzer:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 i = i+1
-                if isinstance(self.where_field_value, dict):
-                    print('Using WHERE conditions: {}'.format(self.where_field_value))
-                    for key, value in self.where_field_value.items():
-                        print('Checking: ({} == {})'.format(row[key], value))
-                        if row[key] != value:
-                            print('Continuing: ({} != {})'.format(row[key], value))
-                            continue
-                        else:
-                            self.csv_contents.append(dict(row))
-                else:
-                    print('No conditions indicated. Returning all rows.')
-                    self.csv_contents.append(dict(row))
+                self.csv_contents.append(dict(row))
         print(i)
         # Get Headers
         for k in self.csv_contents[0].keys():
@@ -120,7 +104,8 @@ class Analyzer:
         print(blank_header_string)
         print('-' * separator_length)
 
-    def export_csv(self, headers='DEFAULT', export_path='output.csv', **kwargs):
+    def export_csv(self, headers='DEFAULT', export_path='output.csv', where_condition=None, **kwargs):
+        # Set Headers
         if headers == 'EXCLUDE_BLANK':
             headers = self.used_headers
         elif headers == 'BLANK':
@@ -132,13 +117,31 @@ class Analyzer:
         if not headers:
             headers = self.headers
 
+        if isinstance(where_condition, dict):
+            print('Using WHERE conditions: {}'.format(where_condition))
+        else:
+            print('No WHERE conditions given. Writing all rows.')
+
         with open(export_path, 'w', newline='') as outfile:
             # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
             # quoting=csv.QUOTE_ALL
             writer = csv.DictWriter(outfile, headers, extrasaction='ignore', **kwargs)
             writer.writeheader()
             for row in self.csv_contents:
-                writer.writerow(row)
+                # Check for row restrictions
+                if isinstance(where_condition, dict):
+                    is_match = True
+                    for key, value in where_condition.items():
+                        # print('Checking: ({} == {})'.format(row[key], value))
+                        if row[key] != value:
+                            print('Continuing: ({} != {})'.format(row[key], value))
+                            is_match = False
+                            break
+                    if is_match:
+                        writer.writerow(row)
+                else:
+                    print('Writing:\n{}'.format(row))
+                    writer.writerow(row)
 
 if __name__ == '__main__':
     analyzer = Analyzer()
