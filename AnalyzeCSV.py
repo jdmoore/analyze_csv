@@ -113,13 +113,12 @@ class Analyzer:
     def get_csv_stats(self):
         return self.csv_stats
 
-
-    def export_csv(self, headers='DEFAULT', export_path='output.csv', where_condition=None, **kwargs):
+    def export_csv(self, headers_style=None, export_path='output.csv', where_condition=None, **kwargs):
         # Set Headers
         # TODO: Add support for getting blank columns specific to where_condition
-        if headers == 'EXCLUDE_BLANK':
+        if headers_style == 'EXCLUDE_BLANK':
             headers = self.used_headers
-        elif headers == 'BLANK':
+        elif headers_style == 'ONLY_BLANK':
             headers = self.blank_headers
         else:
             headers = self.headers
@@ -158,4 +157,4 @@ if __name__ == '__main__':
     analyzer = Analyzer()
     analyzer.get_empty_columns()
     analyzer.print_csv_stats()
-    analyzer.export_csv(export_path='output.csv', headers='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
+    analyzer.export_csv(export_path='output.csv', headers_style='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
