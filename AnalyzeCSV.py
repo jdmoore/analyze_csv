@@ -41,6 +41,7 @@ class Analyzer:
 
         # Method calls
         self.read_csv()
+        self.get_empty_columns()
         self.generate_csv_stats()
 
     def read_csv(self):
@@ -155,6 +156,5 @@ class Analyzer:
 
 if __name__ == '__main__':
     analyzer = Analyzer()
-    analyzer.get_empty_columns()
     analyzer.print_csv_stats()
     analyzer.export_csv(export_path='output.csv', headers_style='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
