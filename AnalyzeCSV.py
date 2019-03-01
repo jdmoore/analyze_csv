@@ -25,6 +25,9 @@ class Analyzer:
     used_headers = None
     blank_headers = None
 
+    # Dictionary
+    csv_stats = None
+
     def __init__(self, input_path='input.csv'):
         # Values passed by args
         self.input_path = input_path
@@ -38,7 +41,7 @@ class Analyzer:
 
         # Method calls
         self.read_csv()
-
+        self.generate_csv_stats()
 
     def read_csv(self):
         # Get CSV Contents
@@ -52,7 +55,6 @@ class Analyzer:
         # Get Headers
         for k in self.csv_contents[0].keys():
             self.headers.append(k)
-
 
     def get_empty_columns(self):
         # TODO: Improve that ugly "BLANK COLUMN FOUND" bit
@@ -80,30 +82,37 @@ class Analyzer:
 
     def print_csv_stats(self):
         # Format the output strings
-        stats_preface_string = "Stats for '{}':".format(self.input_path)
-        csv_row_count_string = "Number of Rows in '{}': {}".format(self.input_path, len(self.csv_contents))
-        csv_unique_row_count_string = "Number of Unique Rows in '{}': {}".format(self.input_path,
-                                                                                 len(self.get_unique_rows()))
-        total_header_string = 'Number of Total Headers: {}'.format(len(self.headers))
-        used_header_string = 'Number of Used Headers: {}'.format(len(self.used_headers))
-        blank_header_string = 'Number of Blank Headers: {}'.format(len(self.blank_headers))
+        stats_preface_string = "Stats for '{}'".format(self.csv_stats['FileName'])
+        csv_row_count_string = "Number of Rows: {}".format(self.csv_stats['RowCount'])
+        csv_unique_row_count_string = "Number of Unique Rows: {}".format(self.csv_stats['UniqueRowCount'])
+        total_header_string = 'Number of Total Headers: {}'.format(self.csv_stats['TotalHeaderCount'])
+        used_header_string = 'Number of Used Headers: {}'.format(self.csv_stats['UsedHeaderCount'])
+        blank_header_string = 'Number of Blank Headers: {}'.format(self.csv_stats['BlankHeaderCount'])
 
-        # Get the length for the separator line
-        # lengths = [len(stats_preface_string), len(csv_row_count_string), len(csv_unique_row_count_string),
-        #            len(total_header_string), len(used_header_string), len(blank_header_string)]
-        # lengths.sort()
-        # separator_length = lengths[0] * 3
-        separator_length = 120
+        separator = '-' * 120
 
         # Print the stats
-        print('-' * separator_length)
+        print(separator)
         print(stats_preface_string)
         print(csv_row_count_string)
         print(csv_unique_row_count_string)
         print(total_header_string)
         print(used_header_string)
         print(blank_header_string)
-        print('-' * separator_length)
+        print(separator)
+
+    def generate_csv_stats(self):
+        self.csv_stats = dict()
+        self.csv_stats['FileName'] = self.input_path
+        self.csv_stats['RowCount'] = len(self.csv_contents)
+        self.csv_stats['UniqueRowCount'] =len(self.get_unique_rows())
+        self.csv_stats['TotalHeaderCount'] = len(self.headers)
+        self.csv_stats['UsedHeaderCount'] = len(self.used_headers)
+        self.csv_stats['BlankHeaderCount'] = len(self.blank_headers)
+
+    def get_csv_stats(self):
+        return self.csv_stats
+
 
     def export_csv(self, headers='DEFAULT', export_path='output.csv', where_condition=None, **kwargs):
         # Set Headers
