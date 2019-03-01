@@ -1,0 +1,6 @@
+# Pycharm Folder
+.idea/**
+
+# Test Input/Output
+scratch.py
+*.csv

@@ -12,9 +12,12 @@ TODO:
 
 headers = dict()
 
+csv_contents = []
+
 with open('sorted.csv', newline='') as csvfile:
     reader = csv.DictReader(csvfile)
     for row in reader:
+        csv_contents.append(row)
         for k, v in row.items():
             if k not in headers.keys():
                 headers[k] = 'BLANK COLUMN FOUND'
@@ -39,3 +42,12 @@ print('-'*120)
 print('Number of Total Headers: {}'.format(len(total_headers)))
 print('Number of Used Headers: {}'.format(len(used_headers)))
 print('Number of Blank Headers: {}'.format(len(blank_headers)))
+
+print('-'*120)
+
+with open('modified_output.csv', 'w',  newline='') as outfile:
+    # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
+    writer = csv.DictWriter(outfile, used_headers, extrasaction='ignore', quoting=csv.QUOTE_ALL)
+    writer.writeheader()
+    for row in csv_contents:
+        writer.writerow(row)
