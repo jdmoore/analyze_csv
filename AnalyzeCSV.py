@@ -1,7 +1,9 @@
 #!/bin/python3
 
 import csv
+import sys
 
+csv.field_size_limit(sys.maxsize)
 """
 TODO: 
 1) Encapsulate in class
