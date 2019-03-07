@@ -32,10 +32,12 @@ class Analyzer:
 
     # Dictionary
     csv_stats = None
+    wildcard_stats = None
 
-    def __init__(self, input_path='input.csv'):
+    def __init__(self, input_path='input.csv', verbose=False):
         # Values passed by args
         self.input_path = input_path
+        self.verbose = verbose
 
         # Initialize list attributes
         self.headers = []
@@ -43,8 +45,9 @@ class Analyzer:
         self.unique_rows = []
         self.used_headers = []
         self.blank_headers = []
+        self.wildcard_headers = ['Wildcard', 'Found In']
 
-        # Initialize dict attributes
+        # Initialize Dictionary attributes
         self.wildcard_stats = dict()
 
         # Method calls
@@ -61,9 +64,13 @@ class Analyzer:
                 # i = i+1
                 self.csv_contents.append(dict(row))
         # print(i)
-        # Get Headers
-        for k in self.csv_contents[0].keys():
-            self.headers.append(k)
+        try:
+            # Get Headers
+            for k in self.csv_contents[0].keys():
+                self.headers.append(k)
+        except IndexError:
+            print('Input file "{}" appears to be empty. Verify input is correct and try again.'.format(self.input_path))
+            raise
 
     def get_empty_columns(self):
         # TODO: Improve that ugly "BLANK COLUMN FOUND" bit
@@ -122,11 +129,14 @@ class Analyzer:
     def get_csv_stats(self):
         return self.csv_stats
 
+    def get_wildcard_headers(self):
+        return self.wildcard_headers
+
     def get_wildcard_stats(self):
         return self.wildcard_stats
 
     def export_csv(self, headers_style=None, export_path='output.csv', where_condition=None, zero_length_match=None,
-                   **kwargs):
+                   filter_type='AND', **kwargs):
         # Set Headers
         # TODO: Add support for getting blank columns specific to where_condition
         if headers_style == 'EXCLUDE_BLANK':
@@ -152,7 +162,6 @@ class Analyzer:
             writer = csv.DictWriter(outfile, headers, extrasaction='ignore', **kwargs)
             writer.writeheader()
             for row in self.csv_contents:
-
                 # TODO: Encapsulate condition checks into separate method
                 # Check for row restrictions
                 if isinstance(where_condition, dict):
@@ -162,7 +171,11 @@ class Analyzer:
                         condition_met = False
                     # Otherwise, default to true and check other conditions first
                     else:
-                        condition_met = True
+                        if filter_type == 'AND':
+                            condition_met = True
+                        else:
+                            condition_met = False
+                        match_count = 0
 
                         # Iterate through conditions, breaking at the first failed condition test
                         # Key is the name of the column to compare with, value is the pattern for the compare
@@ -170,18 +183,25 @@ class Analyzer:
                             # Wild cards are processed below, skip them here
                             if key == '*':
                                 continue
+                            if self.verbose:
+                                print('Checking:\n{} against pattern {}'.format(row[key], value))
                             re_match = re.match(value, row[key])
-
+                            print(re_match)
                             if re_match:
-                                if not zero_length_match:
+                                if zero_length_match or ((re_match.end() - re_match.start()) > 0):
                                     # Reject zero-length matches
-                                    if (re_match.end() - re_match.start()) == 0:
-                                            condition_met = False
-                                            break
-                            # If not a match, break and move onto the next row
-                            else:
+                                    match_count = match_count + 1
+                                    if self.verbose:
+                                        print('Match found:\n{} matches pattern {}'.format(row[key], value))
+                            # If filter type is AND, and one filter is not a match, break and move onto the next row
+                            elif filter_type == 'AND':
                                 condition_met = False
                                 break
+
+                        # If filter type is OR, any non-zero amount of matches is sufficient
+                        if filter_type == 'OR':
+                            if match_count:
+                                condition_met = True
 
                     # If field was disqualified by above checks, check for wildcard
                     if not condition_met:
@@ -195,7 +215,8 @@ class Analyzer:
                                 # Find all columns that contain the value (to allow for searching what
                                 # columns have a given pattern
                                 if wildcard_match:
-                                    print('Match found:\n{} matches {}'.format(field, wildcard))
+                                    if self.verbose:
+                                        print('Match found:\n{} matches {}'.format(field, wildcard))
                                     # If zero length matches are allowed, or the match is of non-zero length
                                     if zero_length_match or ((wildcard_match.end() - wildcard_match.start()) > 0):
                                         self.wildcard_stats[column] = wildcard
