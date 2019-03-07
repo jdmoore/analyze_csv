@@ -150,6 +150,9 @@ class Analyzer:
         if not headers:
             headers = self.headers
 
+        if filter_type.lower() not in ['and', 'or']:
+            filter_type = 'AND'
+
         # if isinstance(where_condition, dict):
         #     print('Using WHERE conditions: {}'.format(where_condition))
         # else:
@@ -183,24 +186,15 @@ class Analyzer:
                             # Wild cards are processed below, skip them here
                             if key == '*':
                                 continue
-                            if self.verbose:
-                                print('Checking:\n{} against pattern {}'.format(row[key], value))
-                            re_match = re.match(value, row[key])
-                            if re_match:
-                                if zero_length_match or ((re_match.end() - re_match.start()) > 0):
-                                    # Reject zero-length matches
-                                    match_count = match_count + 1
-                                    if self.verbose:
-                                        print('Match found:\n{} matches pattern {}'.format(row[key], value))
                             # If filter type is AND, and one filter is not a match, break and move onto the next row
-                            elif filter_type == 'AND':
+                            result = self.check_conditions(pattern=value, string=row[key],
+                                                           zero_length_match=zero_length_match)
+                            if (not result) and (filter_type.upper() == 'AND'):
                                 condition_met = False
                                 break
-
-                        # If filter type is OR, any non-zero amount of matches is sufficient
-                        if filter_type == 'OR':
-                            if match_count:
+                            if result and (filter_type.upper() == 'OR'):
                                 condition_met = True
+                                break
 
                     # If field was disqualified by above checks, check for wildcard
                     if not condition_met:
@@ -227,6 +221,21 @@ class Analyzer:
                 else:
                     # print('Writing:\n{}'.format(row))
                     writer.writerow(row)
+
+    def check_conditions(self, pattern=None, string=None, zero_length_match=False):
+        condition_met = False
+        if self.verbose:
+            print('Checking:\n{} against pattern {}'.format(string, pattern))
+        re_match = re.match(pattern, string)
+        if re_match:
+            if zero_length_match or ((re_match.end() - re_match.start()) > 0):
+                if self.verbose:
+                    print('Match found:\n{} matches pattern {}'.format(string, pattern))
+                condition_met = True
+        return condition_met
+
+
+
 
 
 # Demo Output
