@@ -2,6 +2,8 @@
 
 import csv
 import sys
+import re
+
 
 csv.field_size_limit(sys.maxsize)
 """
@@ -26,6 +28,7 @@ class Analyzer:
     # Lists
     used_headers = None
     blank_headers = None
+    wildcard_headers = None
 
     # Dictionary
     csv_stats = None
@@ -34,12 +37,15 @@ class Analyzer:
         # Values passed by args
         self.input_path = input_path
 
-        # Initialize attributes
+        # Initialize list attributes
         self.headers = []
         self.csv_contents = []
         self.unique_rows = []
         self.used_headers = []
         self.blank_headers = []
+
+        # Initialize dict attributes
+        self.wildcard_stats = dict()
 
         # Method calls
         self.read_csv()
@@ -116,7 +122,11 @@ class Analyzer:
     def get_csv_stats(self):
         return self.csv_stats
 
-    def export_csv(self, headers_style=None, export_path='output.csv', where_condition=None, **kwargs):
+    def get_wildcard_stats(self):
+        return self.wildcard_stats
+
+    def export_csv(self, headers_style=None, export_path='output.csv', where_condition=None, zero_length_match=None,
+                   **kwargs):
         # Set Headers
         # TODO: Add support for getting blank columns specific to where_condition
         if headers_style == 'EXCLUDE_BLANK':
@@ -138,24 +148,70 @@ class Analyzer:
         with open(export_path, 'w', newline='') as outfile:
             # class csv.DictWriter(f, fieldnames, restval='', extrasaction='raise', dialect='excel', *args, **kwds)
             # quoting=csv.QUOTE_ALL
+            print('Processing {}'.format(export_path))
             writer = csv.DictWriter(outfile, headers, extrasaction='ignore', **kwargs)
             writer.writeheader()
             for row in self.csv_contents:
+
+                # TODO: Encapsulate condition checks into separate method
                 # Check for row restrictions
                 if isinstance(where_condition, dict):
-                    is_match = True
-                    for key, value in where_condition.items():
-                        # print('Checking: ({} == {})'.format(row[key], value))
-                        if row[key] != value:
-                            # print('Continuing: ({} != {})'.format(row[key], value))
-                            is_match = False
-                            break
-                    if is_match:
+
+                    # If the wildcard is the only condition, default to false and skip to checking the wildcard
+                    if list(where_condition.keys()) == ['*']:
+                        condition_met = False
+                    # Otherwise, default to true and check other conditions first
+                    else:
+                        condition_met = True
+
+                        # Iterate through conditions, breaking at the first failed condition test
+                        # Key is the name of the column to compare with, value is the pattern for the compare
+                        for key, value in where_condition.items():
+                            # Wild cards are processed below, skip them here
+                            if key == '*':
+                                continue
+                            re_match = re.match(value, row[key])
+
+                            if re_match:
+                                if not zero_length_match:
+                                    # Reject zero-length matches
+                                    if (re_match.end() - re_match.start()) == 0:
+                                            condition_met = False
+                                            break
+                            # If not a match, break and move onto the next row
+                            else:
+                                if key != 'script_name' and key != 'action_type':
+                                    print('Continuing: ({} does not match pattern {})'.format(row[key], value))
+                                condition_met = False
+                                break
+
+                    # If field was disqualified by above checks, check for wildcard
+                    if not condition_met:
+                        if '*' in where_condition:
+                            wildcard = where_condition['*']
+                            for column, field in row.items():
+                                # if field:
+                                #     print('\nChecking {} against pattern {}'.format(field, wildcard))
+                                # Check Wildcard (wildcards apply to all columns, not to all field values)
+                                wildcard_match = re.match(wildcard, field)
+                                # Find all columns that contain the value (to allow for searching what
+                                # columns have a given pattern
+                                if wildcard_match:
+                                    print('Match found:\n{} matches {}'.format(field, wildcard))
+                                    # If zero length matches are allowed, or the match is of non-zero length
+                                    if zero_length_match or ((wildcard_match.end() - wildcard_match.start()) > 0):
+                                        self.wildcard_stats[column] = wildcard
+                                        condition_met = True
+
+                    # Write row if conditions are met (vacuously or otherwise)
+                    if condition_met:
                         writer.writerow(row)
                 else:
                     # print('Writing:\n{}'.format(row))
                     writer.writerow(row)
 
+
+# Demo Output
 if __name__ == '__main__':
     analyzer = Analyzer()
     analyzer.print_csv_stats()
