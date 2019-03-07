@@ -180,8 +180,6 @@ class Analyzer:
                                             break
                             # If not a match, break and move onto the next row
                             else:
-                                if key != 'script_name' and key != 'action_type':
-                                    print('Continuing: ({} does not match pattern {})'.format(row[key], value))
                                 condition_met = False
                                 break
 
