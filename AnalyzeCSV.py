@@ -186,7 +186,6 @@ class Analyzer:
                             if self.verbose:
                                 print('Checking:\n{} against pattern {}'.format(row[key], value))
                             re_match = re.match(value, row[key])
-                            print(re_match)
                             if re_match:
                                 if zero_length_match or ((re_match.end() - re_match.start()) > 0):
                                     # Reject zero-length matches
