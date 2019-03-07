@@ -231,6 +231,7 @@ class Analyzer:
 
 # Demo Output
 if __name__ == '__main__':
-    analyzer = Analyzer()
+    input_path = input("Enter path> ")
+    analyzer = Analyzer(input_path=input_path)
     analyzer.print_csv_stats()
     analyzer.export_csv(export_path='output.csv', headers_style='EXCLUDE_BLANK', quoting=csv.QUOTE_ALL)
